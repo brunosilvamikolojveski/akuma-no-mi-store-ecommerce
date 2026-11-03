@@ -1,64 +1,82 @@
-<<<<<<< HEAD
-# akuma-no-mi-store-ecommerce
-E-commerce de mangás desenvolvido como projeto final de curso, com Laravel.
-=======
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Akuma no Mi Store
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+E-commerce de mangás desenvolvido como projeto final de curso. A aplicação está em desenvolvimento e usa Laravel no backend, MySQL para persistência e Vite para os assets do frontend.
 
-## About Laravel
+## Tecnologias
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.4 e Laravel 12
+- MySQL 8.4
+- Docker Compose
+- Node.js, npm, Vite e Tailwind CSS
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Pré-requisitos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Docker Engine com Docker Compose
+- Node.js e npm para instalar e compilar os assets do frontend
 
-## Learning Laravel
+## Como iniciar
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Na raiz do projeto, crie o arquivo de ambiente local e suba os contêineres:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
 
-## Laravel Sponsors
+> [!NOTE]
+> O `.env.example` já aponta para o serviço MySQL do Compose (`DB_HOST=mysql`). O arquivo `.env` é local e não deve ser enviado ao Git.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Gere a chave da aplicação e crie as tabelas com os dados iniciais:
 
-### Premium Partners
+```bash
+docker compose exec php php artisan key:generate
+docker compose exec php php artisan migrate --seed
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Instale e compile os assets do frontend no computador:
 
-## Contributing
+```bash
+npm install
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+A aplicação fica disponível em <http://localhost:8000>.
 
-## Code of Conduct
+## Comandos úteis
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# Acompanhar os logs dos serviços
+docker compose logs -f
 
-## Security Vulnerabilities
+# Abrir um shell no contêiner PHP
+docker compose exec php bash
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Rodar as migrations pendentes
+docker compose exec php php artisan migrate
 
-## License
+# Recriar todas as tabelas e executar os seeders (apaga os dados atuais)
+docker compose exec php php artisan migrate:fresh --seed
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
->>>>>>> 2522f28 (chore: inicia estrutura do e-commerce)
+# Executar os testes automatizados
+docker compose exec php php artisan test
+
+# Parar os contêineres sem apagar o banco
+docker compose down
+```
+
+Para apagar também o volume persistente do MySQL, use `docker compose down -v`. Isso remove os dados do banco.
+
+## Estrutura do domínio
+
+O esquema atual contempla:
+
+- Usuários e papéis (`users`, `roles`)
+- Editoras, séries, autores e categorias
+- Volumes de mangá como produtos, com preço, estoque e ISBN
+- Endereços salvos dos usuários
+- Carrinhos e itens do carrinho
+- Pedidos, itens do pedido e pagamentos
+
+Autores e categorias podem se relacionar com várias séries. Cada série pertence a uma editora e pode ter vários volumes. Os pedidos guardam uma cópia dos dados de envio e dos itens para preservar o histórico.
+
+As migrations ficam em `database/migrations`, os modelos Eloquent em `app/Models` e os dados iniciais em `database/seeders`.
