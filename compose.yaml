@@ -4,10 +4,8 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: bookshelf
-      MYSQL_USER: bookshelf
-      MYSQL_PASSWORD: bookshelf
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: Akuma-no-mi-store
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
