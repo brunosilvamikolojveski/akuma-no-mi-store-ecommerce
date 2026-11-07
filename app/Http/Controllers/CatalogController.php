@@ -2,19 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CatalogIndexRequest;
 use App\Models\Manga;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class CatalogController extends Controller
 {
-    public function index(Request $request)
+    public function index(CatalogIndexRequest $request)
     {
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'category' => ['nullable', 'string', 'max:80'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $filters = $request->validated();
 
         $mangas = Manga::query()
             ->where('is_active', true)
