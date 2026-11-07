@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,7 +15,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $customerRole = Role::firstOrCreate(
+        Role::firstOrCreate(
             ['name' => 'customer'],
             ['display_name' => 'Cliente'],
         );
@@ -26,10 +25,6 @@ class DatabaseSeeder extends Seeder
             ['display_name' => 'Administrador'],
         );
 
-        User::factory()->create([
-            'role_id' => $customerRole->id,
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $this->call(CatalogSeeder::class);
     }
 }

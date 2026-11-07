@@ -80,3 +80,4 @@ O esquema atual contempla:
 Autores e categorias podem se relacionar com várias séries. Cada série pertence a uma editora e pode ter vários volumes. Os pedidos guardam uma cópia dos dados de envio e dos itens para preservar o histórico.
 
 As migrations ficam em `database/migrations`, os modelos Eloquent em `app/Models` e os dados iniciais em `database/seeders`.
+O seeder inclui papéis de usuário e um catálogo fictício para desenvolvimento: uma editora, duas séries e quatro volumes de mangá.
