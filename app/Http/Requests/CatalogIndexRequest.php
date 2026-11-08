@@ -17,6 +17,7 @@ class CatalogIndexRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:100'],
             'category' => ['nullable', 'string', 'max:80'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'sort' => ['nullable', 'string', 'in:price_asc,price_desc,newest'],
         ];
     }
 }

@@ -10,7 +10,7 @@ class CatalogService
     /** Return active manga volumes matching the validated catalog filters. */
     public function list(array $filters): LengthAwarePaginator
     {
-        return Manga::query()
+        $query = Manga::query()
             ->where('is_active', true)
             ->with(['series.publisher', 'series.authors:id,name', 'series.categories:id,name,slug'])
             ->when($filters['search'] ?? null, function ($query, $search) {
@@ -26,9 +26,20 @@ class CatalogService
                 $query->whereHas('series.categories', function ($categoryQuery) use ($category) {
                     $categoryQuery->where('slug', $category);
                 });
-            })
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            });
+
+        // Only the sort values allowed by the Form Request can reach this selection.
+        $sort = $filters['sort'] ?? 'newest';
+
+        if ($sort === 'price_asc') {
+            $query->orderBy('price')->orderBy('id');
+        } elseif ($sort === 'price_desc') {
+            $query->orderByDesc('price')->orderByDesc('id');
+        } else {
+            $query->orderByDesc('created_at')->orderByDesc('id');
+        }
+
+        return $query
             ->paginate($filters['per_page'] ?? 12)
             ->withQueryString();
     }
