@@ -44,6 +44,36 @@ class CatalogService
             ->withQueryString();
     }
 
+    /** Create a manga volume from validated administrator input. */
+    public function create(array $attributes): Manga
+    {
+        return Manga::create($attributes)->load([
+            'series.publisher',
+            'series.authors:id,name',
+            'series.categories:id,name,slug',
+        ]);
+    }
+
+    /** Update a manga volume from validated administrator input. */
+    public function update(int $id, array $attributes): Manga
+    {
+        $manga = Manga::findOrFail($id);
+        $manga->update($attributes);
+
+        return $manga->load([
+            'series.publisher',
+            'series.authors:id,name',
+            'series.categories:id,name,slug',
+        ]);
+    }
+
+    /** Hide a manga from the public catalog without deleting order history. */
+    public function deactivate(int $id): void
+    {
+        $manga = Manga::findOrFail($id);
+        $manga->update(['is_active' => false]);
+    }
+
     /** Find one active manga volume and load the data needed by the API resource. */
     public function findActiveById(int $id): Manga
     {
