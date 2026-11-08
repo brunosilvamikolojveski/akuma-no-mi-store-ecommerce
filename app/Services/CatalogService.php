@@ -8,10 +8,10 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class CatalogService
 {
     /** Return active manga volumes matching the validated catalog filters. */
-    public function list(array $filters): LengthAwarePaginator
+    public function list(array $filters, bool $includeInactive = false): LengthAwarePaginator
     {
         $query = Manga::query()
-            ->where('is_active', true)
+            ->when(! $includeInactive, fn ($query) => $query->where('is_active', true))
             ->with(['series.publisher', 'series.authors:id,name', 'series.categories:id,name,slug'])
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($query) use ($search) {

@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
             ['display_name' => 'Administrador'],
         );
 
-        $this->call(CatalogSeeder::class);
+        $this->call([
+            CatalogSeeder::class,
+            AdminUserSeeder::class,
+        ]);
     }
 }
