@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return response()->json([
-        'application' => 'Akuma no Mi Store',
+        'application' => 'Mangáverse',
         'message' => 'API ativa',
     ]);
 });

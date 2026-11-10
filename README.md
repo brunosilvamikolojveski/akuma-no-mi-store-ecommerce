@@ -1,4 +1,4 @@
-# Akuma no Mi Store
+# Mangáverse
 
 E-commerce de mangás desenvolvido como projeto final de curso. A aplicação está em desenvolvimento e usa Laravel no backend, MySQL para persistência e Vite para os assets do frontend.
 
