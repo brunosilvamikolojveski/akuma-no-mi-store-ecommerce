@@ -4,6 +4,8 @@ use App\Http\Controllers\AdminAuthorController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminMangaController;
 use App\Http\Controllers\AdminSeriesController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\CatalogController;
@@ -35,6 +37,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    Route::apiResource('addresses', AddressController::class);
+    Route::get('/cart', [CartController::class, 'show']);
+    Route::post('/cart/items', [CartController::class, 'addItem']);
+    Route::patch('/cart/items/{cartItem}', [CartController::class, 'updateItem'])->whereNumber('cartItem');
+    Route::delete('/cart/items/{cartItem}', [CartController::class, 'removeItem'])->whereNumber('cartItem');
+    Route::delete('/cart', [CartController::class, 'clear']);
 
     Route::get('/user', function (Request $request) {
         return new \App\Http\Resources\UserResource($request->user()->load('role'));
