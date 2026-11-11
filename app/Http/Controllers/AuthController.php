@@ -7,14 +7,16 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CartService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
+    public function register(RegisterRequest $request, CartService $cart)
     {
+        $guestSessionId = $request->session()->getId();
         $data = $request->validated();
         $customerRole = Role::firstOrCreate(
             ['name' => 'customer'],
@@ -29,15 +31,18 @@ class AuthController extends Controller
         ]);
 
         Auth::guard('web')->login($user);
+        $cartMerge = $cart->mergeGuestCartIntoUser($user, $guestSessionId);
         $request->session()->regenerate();
 
         return (new UserResource($user->load('role')))
+            ->additional(['cart_merge' => $cartMerge])
             ->response()
             ->setStatusCode(201);
     }
 
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request, CartService $cart)
     {
+        $guestSessionId = $request->session()->getId();
         $credentials = $request->validated();
 
         if (! Auth::guard('web')->attempt($credentials)) {
@@ -46,9 +51,12 @@ class AuthController extends Controller
             ]);
         }
 
+        $user = $request->user();
+        $cartMerge = $cart->mergeGuestCartIntoUser($user, $guestSessionId);
         $request->session()->regenerate();
 
-        return new UserResource($request->user()->load('role'));
+        return (new UserResource($user->load('role')))
+            ->additional(['cart_merge' => $cartMerge]);
     }
 
     public function logout(Request $request)

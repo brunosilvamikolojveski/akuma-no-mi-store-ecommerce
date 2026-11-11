@@ -3,27 +3,26 @@
 namespace App\Services;
 
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Manga;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class CartService
 {
-    public function getFor(User $user): Cart
+    public function getFor(?User $user, string $sessionId): Cart
     {
-        return $this->loadCart($this->cartFor($user));
+        return $this->loadCart($this->findOrCreateCart($user, $sessionId));
     }
 
-    public function addItem(User $user, int $mangaId, int $quantity): Cart
+    public function addItem(?User $user, string $sessionId, int $mangaId, int $quantity): Cart
     {
-        return DB::transaction(function () use ($user, $mangaId, $quantity) {
+        return DB::transaction(function () use ($user, $sessionId, $mangaId, $quantity) {
             $manga = Manga::query()
                 ->where('is_active', true)
                 ->lockForUpdate()
                 ->findOrFail($mangaId);
 
-            $cart = $this->cartFor($user);
+            $cart = $this->findOrCreateCart($user, $sessionId);
             $item = $cart->items()
                 ->where('manga_id', $manga->id)
                 ->lockForUpdate()
@@ -47,10 +46,10 @@ class CartService
         });
     }
 
-    public function updateItem(User $user, int $itemId, int $quantity): Cart
+    public function updateItem(?User $user, string $sessionId, int $itemId, int $quantity): Cart
     {
-        return DB::transaction(function () use ($user, $itemId, $quantity) {
-            $cart = $this->cartFor($user);
+        return DB::transaction(function () use ($user, $sessionId, $itemId, $quantity) {
+            $cart = $this->findOrCreateCart($user, $sessionId);
             $item = $cart->items()->findOrFail($itemId);
             $manga = Manga::query()->lockForUpdate()->findOrFail($item->manga_id);
 
@@ -68,20 +67,108 @@ class CartService
         });
     }
 
-    public function removeItem(User $user, int $itemId): void
+    public function removeItem(?User $user, string $sessionId, int $itemId): void
     {
-        $cart = $this->cartFor($user);
+        $cart = $this->findOrCreateCart($user, $sessionId);
         $cart->items()->findOrFail($itemId)->delete();
     }
 
-    public function clear(User $user): void
+    public function clear(?User $user, string $sessionId): void
     {
-        $user->cart?->items()->delete();
+        $this->findCart($user, $sessionId)?->items()->delete();
     }
 
-    private function cartFor(User $user): Cart
+    public function mergeGuestCartIntoUser(User $user, string $guestSessionId): array
     {
-        return $user->cart()->firstOrCreate([]);
+        return DB::transaction(function () use ($user, $guestSessionId) {
+            $guestCart = Cart::query()
+                ->where('session_id', $guestSessionId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $guestCart) {
+                return ['adjusted_items' => [], 'removed_items' => []];
+            }
+
+            $userCart = $user->cart()->lockForUpdate()->first();
+
+            if (! $userCart) {
+                $userCart = $user->cart()->create();
+            }
+
+            $guestItems = $guestCart->items()
+                ->orderBy('manga_id')
+                ->lockForUpdate()
+                ->get();
+            $adjustedItems = [];
+            $removedItems = [];
+
+            foreach ($guestItems as $guestItem) {
+                $manga = Manga::query()
+                    ->with('series:id,title')
+                    ->lockForUpdate()
+                    ->findOrFail($guestItem->manga_id);
+                $userItem = $userCart->items()
+                    ->where('manga_id', $manga->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $manga->is_active || $manga->stock < 1) {
+                    $removedItems[] = [
+                        'manga_id' => $manga->id,
+                        'title' => $manga->title ?: $manga->series->title,
+                    ];
+
+                    continue;
+                }
+
+                $requestedQuantity = ($userItem?->quantity ?? 0) + $guestItem->quantity;
+                $finalQuantity = min($requestedQuantity, $manga->stock);
+
+                if ($finalQuantity < $requestedQuantity) {
+                    $adjustedItems[] = [
+                        'manga_id' => $manga->id,
+                        'title' => $manga->title ?: $manga->series->title,
+                        'requested_quantity' => $requestedQuantity,
+                        'kept_quantity' => $finalQuantity,
+                    ];
+                }
+
+                if ($userItem) {
+                    $userItem->update(['quantity' => $finalQuantity]);
+                } else {
+                    $userCart->items()->create([
+                        'manga_id' => $manga->id,
+                        'quantity' => $finalQuantity,
+                    ]);
+                }
+            }
+
+            $guestCart->delete();
+
+            return [
+                'adjusted_items' => $adjustedItems,
+                'removed_items' => $removedItems,
+            ];
+        });
+    }
+
+    private function findOrCreateCart(?User $user, string $sessionId): Cart
+    {
+        if ($user) {
+            return $user->cart()->firstOrCreate([]);
+        }
+
+        return Cart::query()->firstOrCreate(['session_id' => $sessionId]);
+    }
+
+    private function findCart(?User $user, string $sessionId): ?Cart
+    {
+        if ($user) {
+            return $user->cart()->first();
+        }
+
+        return Cart::query()->where('session_id', $sessionId)->first();
     }
 
     private function loadCart(Cart $cart): Cart

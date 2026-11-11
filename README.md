@@ -79,5 +79,9 @@ O esquema atual contempla:
 
 Autores e categorias podem se relacionar com várias séries. Cada série pertence a uma editora e pode ter vários volumes. Os pedidos guardam uma cópia dos dados de envio e dos itens para preservar o histórico.
 
+## Carrinho de visitante e fusão no login
+
+O carrinho de visitante é identificado pelo ID da sessão Laravel e fica salvo no banco. Ao fazer login ou se registrar, a API transfere os itens disponíveis para o carrinho da conta e renova a sessão. Se o mesmo volume estiver nos dois carrinhos, as quantidades são somadas até o limite do estoque. Itens inativos ou sem estoque não são transferidos, e itens que já estavam no carrinho da conta são preservados. A resposta de autenticação informa itens ajustados ou não transferidos em `cart_merge`.
+
 As migrations ficam em `database/migrations`, os modelos Eloquent em `app/Models` e os dados iniciais em `database/seeders`.
 O seeder inclui papéis de usuário e um catálogo fictício para desenvolvimento: uma editora, duas séries e quatro volumes de mangá. Para criar a conta admin local, defina `ADMIN_NAME`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` no `.env` antes de executar `php artisan db:seed`. Essa conta só é criada nos ambientes `local` e `testing`.

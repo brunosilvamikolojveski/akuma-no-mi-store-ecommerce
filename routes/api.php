@@ -22,6 +22,11 @@ Route::get('/authors', [AuthorController::class, 'index']);
 Route::get('/authors/{author}', [AuthorController::class, 'show'])->whereNumber('author');
 Route::get('/series', [SeriesController::class, 'index']);
 Route::get('/series/{series:slug}', [SeriesController::class, 'show']);
+Route::get('/cart', [CartController::class, 'show']);
+Route::post('/cart/items', [CartController::class, 'addItem']);
+Route::patch('/cart/items/{cartItem}', [CartController::class, 'updateItem'])->whereNumber('cartItem');
+Route::delete('/cart/items/{cartItem}', [CartController::class, 'removeItem'])->whereNumber('cartItem');
+Route::delete('/cart', [CartController::class, 'clear']);
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -40,11 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('addresses', AddressController::class);
-    Route::get('/cart', [CartController::class, 'show']);
-    Route::post('/cart/items', [CartController::class, 'addItem']);
-    Route::patch('/cart/items/{cartItem}', [CartController::class, 'updateItem'])->whereNumber('cartItem');
-    Route::delete('/cart/items/{cartItem}', [CartController::class, 'removeItem'])->whereNumber('cartItem');
-    Route::delete('/cart', [CartController::class, 'clear']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->whereNumber('order');
