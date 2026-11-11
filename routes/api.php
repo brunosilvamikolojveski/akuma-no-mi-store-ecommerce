@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminMangaController;
 use App\Http\Controllers\AdminSeriesController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\CatalogController;
@@ -44,6 +45,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/cart/items/{cartItem}', [CartController::class, 'updateItem'])->whereNumber('cartItem');
     Route::delete('/cart/items/{cartItem}', [CartController::class, 'removeItem'])->whereNumber('cartItem');
     Route::delete('/cart', [CartController::class, 'clear']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
 
     Route::get('/user', function (Request $request) {
         return new \App\Http\Resources\UserResource($request->user()->load('role'));
