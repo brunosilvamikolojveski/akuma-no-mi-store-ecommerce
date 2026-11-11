@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart', [CartController::class, 'clear']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->whereNumber('order');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
 
     Route::get('/user', function (Request $request) {

@@ -10,33 +10,33 @@ use App\Services\SeriesService;
 
 class AdminSeriesController extends Controller
 {
-    public function index(SeriesService $series)
+    public function index(SeriesService $seriesService)
     {
-        return SeriesResource::collection($series->list());
+        return SeriesResource::collection($seriesService->list());
     }
 
-    public function store(StoreSeriesRequest $request, SeriesService $series)
+    public function store(StoreSeriesRequest $request, SeriesService $seriesService)
     {
-        $created = $series->create($request->validated());
+        $created = $seriesService->create($request->validated());
 
         return (new SeriesResource($created))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function show(Series $series, SeriesService $catalog)
+    public function show(Series $series, SeriesService $seriesService)
     {
-        return new SeriesResource($catalog->findById($series->id));
+        return new SeriesResource($seriesService->findById($series->id));
     }
 
-    public function update(UpdateSeriesRequest $request, Series $series, SeriesService $catalog)
+    public function update(UpdateSeriesRequest $request, Series $series, SeriesService $seriesService)
     {
-        return new SeriesResource($catalog->update($series->id, $request->validated()));
+        return new SeriesResource($seriesService->update($series->id, $request->validated()));
     }
 
-    public function destroy(Series $series, SeriesService $catalog)
+    public function destroy(Series $series, SeriesService $seriesService)
     {
-        $catalog->delete($series->id);
+        $seriesService->delete($series->id);
 
         return response()->noContent();
     }

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Address;
 use App\Models\Manga;
 use App\Models\Order;
 use App\Models\User;
@@ -25,6 +24,34 @@ class OrderService
         return $user->orders()
             ->with(['items', 'payments'])
             ->findOrFail($orderId);
+    }
+
+    public function confirmPayment(User $user, int $orderId): Order
+    {
+        return DB::transaction(function () use ($user, $orderId) {
+            $order = $user->orders()->lockForUpdate()->findOrFail($orderId);
+            $payment = $order->payments()->lockForUpdate()->orderByDesc('id')->first();
+
+            if (! $payment) {
+                abort(422, 'O pedido não possui pagamento.');
+            }
+
+            if ($payment->status === 'paid') {
+                return $this->findFor($user, $orderId);
+            }
+
+            if ($payment->status !== 'pending') {
+                abort(422, 'Este pagamento não pode ser confirmado.');
+            }
+
+            $payment->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+            ]);
+            $order->update(['status' => 'paid']);
+
+            return $this->findFor($user, $orderId);
+        });
     }
 
     public function createFromCart(User $user, int $addressId, string $paymentMethod): Order

@@ -32,4 +32,9 @@ class OrderController extends Controller
     {
         return new OrderResource($orders->findFor($request->user(), $order));
     }
+
+    public function confirmPayment(Request $request, int $order, OrderService $orders)
+    {
+        return new OrderResource($orders->confirmPayment($request->user(), $order));
+    }
 }

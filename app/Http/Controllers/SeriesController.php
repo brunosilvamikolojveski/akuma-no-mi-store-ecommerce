@@ -7,13 +7,13 @@ use App\Services\SeriesService;
 
 class SeriesController extends Controller
 {
-    public function index(SeriesService $series)
+    public function index(SeriesService $seriesService)
     {
-        return SeriesResource::collection($series->list());
+        return SeriesResource::collection($seriesService->list());
     }
 
-    public function show(string $series, SeriesService $catalog)
+    public function show(string $series, SeriesService $seriesService)
     {
-        return new SeriesResource($catalog->findBySlug($series));
+        return new SeriesResource($seriesService->findBySlug($series));
     }
 }
