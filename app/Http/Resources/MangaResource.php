@@ -10,6 +10,8 @@ class MangaResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $coverImagePath = $this->cover_image_path;
+
         return [
             'id' => $this->id,
             'title' => $this->title ?: $this->series->title,
@@ -18,8 +20,11 @@ class MangaResource extends JsonResource
             'description' => $this->description,
             'price' => $this->price,
             'in_stock' => $this->stock > 0,
-            'cover_image_url' => $this->cover_image_path
-                ? Storage::disk('public')->url($this->cover_image_path)
+            'is_active' => $this->is_active,
+            'cover_image_url' => $coverImagePath
+                ? (str_starts_with($coverImagePath, 'http://') || str_starts_with($coverImagePath, 'https://')
+                    ? $coverImagePath
+                    : Storage::disk('public')->url($coverImagePath))
                 : null,
             'published_at' => $this->published_at?->toDateString(),
             'series' => [

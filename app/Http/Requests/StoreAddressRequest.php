@@ -34,4 +34,14 @@ class StoreAddressRequest extends FormRequest
             'is_default' => ['sometimes', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'postal_code.required' => 'Informe o CEP.',
+            'postal_code.string' => 'O CEP deve ser informado como texto.',
+            'postal_code.max' => 'O CEP deve ter no máximo 9 caracteres.',
+            'postal_code.regex' => 'Informe um CEP válido no formato 00000-000.',
+        ];
+    }
 }

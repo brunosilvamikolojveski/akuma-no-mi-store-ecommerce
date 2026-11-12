@@ -1,11 +1,12 @@
 # Mangáverse
 
-Projeto de e-commerce de mangás desenvolvido com Laravel 12 e MySQL. No estado atual, o Docker Compose inicia a API e o banco de dados; a interface frontend ainda não está incluída.
+Projeto de e-commerce de mangás desenvolvido com Laravel 12, MySQL e Vue 3. O Laravel fornece a API; o frontend Vue fica separado em `front/` e consome os mesmos endpoints que poderão ser usados por um app Flutter no futuro.
 
 ## Pré-requisitos
 
 - Git
 - Docker Engine e Docker Compose v2
+- Node.js e npm
 
 ## Instalação em um computador novo
 
@@ -48,6 +49,24 @@ docker compose exec php php artisan migrate --seed
 ```
 
 A API estará disponível em <http://localhost:8000>. O volume `mysql_data` mantém o banco mesmo quando os contêineres são parados.
+
+## Iniciar o frontend Vue
+
+Em outro terminal, instale as dependências e inicie o servidor de desenvolvimento:
+
+```bash
+cd front
+npm install
+npm run dev
+```
+
+Abra <http://localhost:5173>. O frontend usa `http://localhost:8000` como endereço padrão da API. Para trocar esse endereço localmente, crie `front/.env.local` com:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+O arquivo `.env.local` é local e não deve ser enviado ao Git.
 
 ## Verificar a instalação
 

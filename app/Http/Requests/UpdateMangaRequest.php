@@ -44,6 +44,7 @@ class UpdateMangaRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0.01', 'max:99999999.99'],
             'stock' => ['sometimes', 'integer', 'min:0'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'cover_image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'published_at' => ['sometimes', 'nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],

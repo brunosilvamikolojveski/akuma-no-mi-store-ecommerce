@@ -8,12 +8,12 @@ use App\Http\Controllers\AdminSeriesController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SeriesController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/mangas', [CatalogController::class, 'index']);
@@ -54,7 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->whereNumber('order');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
 
-    Route::get('/user', function (Request $request) {
-        return new \App\Http\Resources\UserResource($request->user()->load('role'));
-    });
+    Route::get('/user', [ProfileController::class, 'show']);
+    Route::patch('/user', [ProfileController::class, 'update']);
 });

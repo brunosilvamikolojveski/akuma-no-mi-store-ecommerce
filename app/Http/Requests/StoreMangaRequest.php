@@ -29,6 +29,7 @@ class StoreMangaRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'stock' => ['required', 'integer', 'min:0'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'cover_image_path' => ['nullable', 'string', 'max:255'],
             'published_at' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],

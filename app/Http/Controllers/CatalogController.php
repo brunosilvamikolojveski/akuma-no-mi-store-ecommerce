@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CatalogIndexRequest;
+use App\Http\Resources\MangaDetailResource;
 use App\Http\Resources\MangaResource;
 use App\Services\CatalogService;
 
@@ -17,6 +18,6 @@ class CatalogController extends Controller
 
     public function show(int $manga, CatalogService $catalog)
     {
-        return new MangaResource($catalog->findActiveById($manga));
+        return new MangaDetailResource($catalog->findActiveById($manga));
     }
 }

@@ -13,6 +13,9 @@
 /.zed
 /auth.json
 /node_modules
+/front/node_modules
+/front/dist
+/front/.env.local
 /public/build
 /public/hot
 /public/storage

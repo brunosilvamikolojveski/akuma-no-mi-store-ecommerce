@@ -22,9 +22,13 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    environment:
+      APP_URL: http://localhost:8000
     volumes:
       - .:/app
       - php_vendor:/app/vendor
+      - ./storage/app/public:/app/storage/app/public
+    command: sh -c "php artisan storage:link --force && php artisan serve --host=0.0.0.0"
     healthcheck:
       test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
       interval: 5s
