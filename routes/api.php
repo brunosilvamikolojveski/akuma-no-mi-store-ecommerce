@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminAuthorController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminMangaController;
+use App\Http\Controllers\AdminOrderController;
 use App\Http\Controllers\AdminSeriesController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CartController;
@@ -36,6 +37,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('/mangas', [AdminMangaController::class, 'store']);
     Route::delete('/mangas/{manga}', [AdminMangaController::class, 'destroy'])->whereNumber('manga');
     Route::patch('/mangas/{manga}', [AdminMangaController::class, 'update'])->whereNumber('manga');
+    Route::get('/orders', [AdminOrderController::class, 'index']);
+    Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->whereNumber('order');
     Route::apiResource('categories', AdminCategoryController::class);
     Route::apiResource('authors', AdminAuthorController::class);
     Route::apiResource('series', AdminSeriesController::class);
@@ -47,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('addresses', AddressController::class);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->whereNumber('order');
     Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->whereNumber('order');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
 
