@@ -1,87 +1,110 @@
 # Mangáverse
 
-E-commerce de mangás desenvolvido como projeto final de curso. A aplicação está em desenvolvimento e usa Laravel no backend, MySQL para persistência e Vite para os assets do frontend.
-
-## Tecnologias
-
-- PHP 8.4 e Laravel 12
-- MySQL 8.4
-- Docker Compose
-- Node.js, npm, Vite e Tailwind CSS
+Projeto de e-commerce de mangás desenvolvido com Laravel 12 e MySQL. No estado atual, o Docker Compose inicia a API e o banco de dados; a interface frontend ainda não está incluída.
 
 ## Pré-requisitos
 
-- Docker Engine com Docker Compose
-- Node.js e npm para instalar e compilar os assets do frontend
+- Git
+- Docker Engine e Docker Compose v2
 
-## Como iniciar
+## Instalação em um computador novo
 
-Na raiz do projeto, crie o arquivo de ambiente local e suba os contêineres:
+Clone o repositório e entre na pasta:
+
+```bash
+git clone https://github.com/brunosilvamikolojveski/mangaverse-ecommerce.git
+cd mangaverse-ecommerce
+```
+
+Crie o arquivo de configuração local:
 
 ```bash
 cp .env.example .env
+```
+
+Antes de iniciar os serviços, abra `.env` e defina uma senha local para a conta administrativa:
+
+```dotenv
+ADMIN_NAME=Mangáverse Admin
+ADMIN_EMAIL=admin@mangaverse.test
+ADMIN_PASSWORD=escolha-uma-senha-local
+```
+
+O arquivo `.env` contém configurações locais e não deve ser enviado ao Git.
+
+Construa a imagem e inicie a API e o MySQL:
+
+```bash
 docker compose up -d --build
 ```
 
-> [!NOTE]
-> O `.env.example` já aponta para o serviço MySQL do Compose (`DB_HOST=mysql`). O arquivo `.env` é local e não deve ser enviado ao Git.
+A construção da imagem instala as dependências PHP pelo Composer. O volume `php_vendor` mantém essas dependências visíveis para o container mesmo com o código do projeto montado em `/app`.
 
-Gere a chave da aplicação e crie as tabelas com os dados iniciais:
+Gere a chave da aplicação e crie as tabelas e os dados iniciais:
 
 ```bash
 docker compose exec php php artisan key:generate
 docker compose exec php php artisan migrate --seed
 ```
 
-Instale e compile os assets do frontend no computador:
+A API estará disponível em <http://localhost:8000>. O volume `mysql_data` mantém o banco mesmo quando os contêineres são parados.
+
+## Verificar a instalação
+
+Confira se os contêineres estão ativos e se a API responde:
 
 ```bash
-npm install
-npm run build
+docker compose ps
+curl http://localhost:8000/up
+curl -H "Accept: application/json" http://localhost:8000/api/mangas
 ```
 
-A aplicação fica disponível em <http://localhost:8000>.
+O primeiro endpoint verifica a saúde da aplicação. O segundo consulta o catálogo público.
+
+## Conta administrativa
+
+O `AdminUserSeeder` cria a conta usando `ADMIN_NAME`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` do `.env`, somente nos ambientes `local` e `testing`.
+
+Se você já executou `migrate --seed` antes de preencher essas variáveis, execute o seeder novamente:
+
+```bash
+docker compose exec php php artisan db:seed --class=AdminUserSeeder
+```
+
+## Autenticação da API no Insomnia
+
+A autenticação usa sessão e cookies. Para iniciar uma sessão, faça primeiro `GET http://localhost:8000/sanctum/csrf-cookie` e mantenha o cookie jar ativo. Nas requisições seguintes, envie `Origin: http://localhost:8000`; nas operações que alteram dados, envie também `X-XSRF-TOKEN` com o valor do cookie `XSRF-TOKEN`.
 
 ## Comandos úteis
 
 ```bash
-# Acompanhar os logs dos serviços
+# Ver os logs dos serviços
 docker compose logs -f
 
-# Abrir um shell no contêiner PHP
+# Abrir um terminal no contêiner da API
 docker compose exec php bash
 
-# Rodar as migrations pendentes
+# Aplicar novas migrations
 docker compose exec php php artisan migrate
 
-# Recriar todas as tabelas e executar os seeders (apaga os dados atuais)
+# Recriar o banco e os dados iniciais; isso apaga os dados atuais
 docker compose exec php php artisan migrate:fresh --seed
 
-# Executar os testes automatizados
-docker compose exec php php artisan test
-
-# Parar os contêineres sem apagar o banco
+# Parar os contêineres mantendo os dados do MySQL
 docker compose down
 ```
 
-Para apagar também o volume persistente do MySQL, use `docker compose down -v`. Isso remove os dados do banco.
+Para apagar também o banco persistido, use `docker compose down -v`.
 
-## Estrutura do domínio
+## Estrutura principal
 
-O esquema atual contempla:
+- `app/Models`: entidades e relacionamentos Eloquent
+- `app/Http/Controllers`: entrada e saída das requisições
+- `app/Http/Requests`: validação dos dados recebidos
+- `app/Http/Resources`: formato das respostas JSON
+- `app/Services`: regras de negócio
+- `database/migrations`: estrutura do banco de dados
+- `database/seeders`: papéis e dados fictícios de catálogo
+- `routes/api.php`: rotas da API
 
-- Usuários e papéis (`users`, `roles`)
-- Editoras, séries, autores e categorias
-- Volumes de mangá como produtos, com preço, estoque e ISBN
-- Endereços salvos dos usuários
-- Carrinhos e itens do carrinho
-- Pedidos, itens do pedido e pagamentos
-
-Autores e categorias podem se relacionar com várias séries. Cada série pertence a uma editora e pode ter vários volumes. Os pedidos guardam uma cópia dos dados de envio e dos itens para preservar o histórico.
-
-## Carrinho de visitante e fusão no login
-
-O carrinho de visitante é identificado pelo ID da sessão Laravel e fica salvo no banco. Ao fazer login ou se registrar, a API transfere os itens disponíveis para o carrinho da conta e renova a sessão. Se o mesmo volume estiver nos dois carrinhos, as quantidades são somadas até o limite do estoque. Itens inativos ou sem estoque não são transferidos, e itens que já estavam no carrinho da conta são preservados. A resposta de autenticação informa itens ajustados ou não transferidos em `cart_merge`.
-
-As migrations ficam em `database/migrations`, os modelos Eloquent em `app/Models` e os dados iniciais em `database/seeders`.
-O seeder inclui papéis de usuário e um catálogo fictício para desenvolvimento: uma editora, duas séries e quatro volumes de mangá. Para criar a conta admin local, defina `ADMIN_NAME`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` no `.env` antes de executar `php artisan db:seed`. Essa conta só é criada nos ambientes `local` e `testing`.
+O seeder de catálogo cria uma editora, duas séries e quatro volumes fictícios. O contêiner de desenvolvimento usa `php artisan serve`; esta configuração é para desenvolvimento local, não para produção.
