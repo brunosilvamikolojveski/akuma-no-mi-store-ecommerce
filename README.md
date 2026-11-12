@@ -4,6 +4,8 @@ Projeto de e-commerce de mangás desenvolvido com Laravel 12, MySQL e Vue 3. O L
 
 ## Pré-requisitos
 
+Para a publicação na Vercel e na Railway, siga [o guia de hospedagem](docs/HOSPEDAGEM.md).
+
 - Git
 - Docker Engine e Docker Compose v2
 - Node.js e npm são opcionais, usados apenas para desenvolver o Vue fora do Docker.
@@ -88,7 +90,7 @@ O primeiro endpoint verifica a saúde da aplicação. O segundo consulta o catá
 
 ## Conta administrativa
 
-O `AdminUserSeeder` cria a conta usando `ADMIN_NAME`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` do `.env`, somente nos ambientes `local` e `testing`.
+O `AdminUserSeeder` cria a conta usando `ADMIN_NAME`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` do ambiente. Funciona em `local` e `testing`; em produção, exige a habilitação explícita de `ADMIN_SEED_ENABLED=true`, conforme o guia de hospedagem.
 
 Se você já executou `migrate --seed` antes de preencher essas variáveis, execute o seeder novamente:
 

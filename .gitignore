@@ -16,6 +16,8 @@
 /front/node_modules
 /front/dist
 /front/.env.local
+/.vercel
+/front/.vercel
 /public/build
 /public/hot
 /public/storage

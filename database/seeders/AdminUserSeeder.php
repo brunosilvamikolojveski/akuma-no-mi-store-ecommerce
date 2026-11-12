@@ -10,15 +10,15 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
-            $this->command?->warn('AdminUserSeeder só pode ser executado em local ou testing.');
+        if (! app()->environment(['local', 'testing']) && ! config('admin.allow_production_seed')) {
+            $this->command?->warn('Para criar o admin em produção, habilite ADMIN_SEED_ENABLED e configure as credenciais.');
             return;
         }
 
         $admin = config('admin.seed_user');
 
         if (blank($admin['name']) || blank($admin['email']) || blank($admin['password'])) {
-            $this->command?->warn('Defina ADMIN_NAME, ADMIN_EMAIL e ADMIN_PASSWORD no .env local.');
+            $this->command?->warn('Configure ADMIN_NAME, ADMIN_EMAIL e ADMIN_PASSWORD nas variáveis do ambiente.');
             return;
         }
 

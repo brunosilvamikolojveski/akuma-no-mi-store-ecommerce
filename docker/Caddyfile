@@ -4,7 +4,7 @@
     admin off
 }
 
-:8000 {
+:{$PORT:8000} {
     root * /app/public
     @docs path /api/docs
     rewrite @docs /api/docs/index.html
