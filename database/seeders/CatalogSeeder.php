@@ -101,14 +101,44 @@ class CatalogSeeder extends Seeder
             ],
         ];
 
+        foreach ([$fireChronicles->id, $tomorrowIslands->id] as $seriesId) {
+            for ($volumeNumber = 3; $volumeNumber <= 15; $volumeNumber++) {
+                $stock = 4 + (($volumeNumber * 3 + $seriesId) % 12);
+
+                if ($seriesId === $fireChronicles->id && $volumeNumber === 7) {
+                    $stock = 0;
+                }
+
+                $volumes[] = [
+                    'series_id' => $seriesId,
+                    'volume_number' => $volumeNumber,
+                    'title' => null,
+                    'description' => "Continuação da jornada no volume {$volumeNumber}.",
+                    'price' => number_format(29.90 + (($volumeNumber * 13 + $seriesId) % 2400) / 100, 2, '.', ''),
+                    'stock' => $stock,
+                    'published_at' => sprintf('2025-%02d-01', (($volumeNumber - 1) % 12) + 1),
+                    'is_active' => ! ($seriesId === $tomorrowIslands->id && $volumeNumber === 15),
+                ];
+            }
+        }
+
         foreach ($volumes as $volume) {
             $seriesId = $volume['series_id'];
             $volumeNumber = $volume['volume_number'];
 
-            Manga::updateOrCreate(
-                ['series_id' => $seriesId, 'volume_number' => $volumeNumber],
-                $volume + ['is_active' => true],
-            );
+            $attributes = $volume + ['is_active' => true];
+
+            if ($volumeNumber <= 2) {
+                Manga::updateOrCreate(
+                    ['series_id' => $seriesId, 'volume_number' => $volumeNumber],
+                    $attributes,
+                );
+            } else {
+                Manga::firstOrCreate(
+                    ['series_id' => $seriesId, 'volume_number' => $volumeNumber],
+                    $attributes,
+                );
+            }
         }
     }
 }

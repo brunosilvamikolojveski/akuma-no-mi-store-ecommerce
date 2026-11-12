@@ -90,6 +90,18 @@ Se você já executou `migrate --seed` antes de preencher essas variáveis, exec
 docker compose exec php php artisan db:seed --class=AdminUserSeeder
 ```
 
+## Contas de demonstração
+
+O `DemoCustomerSeeder` cria três contas de cliente em ambientes `local` e `testing`:
+
+| E-mail | Senha |
+| --- | --- |
+| cliente1@mangaverse.test | cliente123 |
+| cliente2@mangaverse.test | cliente123 |
+| cliente3@mangaverse.test | cliente123 |
+
+Essas credenciais são apenas para desenvolvimento local.
+
 ## Autenticação da API no Insomnia
 
 A autenticação usa sessão e cookies. Para iniciar uma sessão, faça primeiro `GET http://localhost:8000/sanctum/csrf-cookie` e mantenha o cookie jar ativo. Nas requisições seguintes, envie `Origin: http://localhost:8000`; nas operações que alteram dados, envie também `X-XSRF-TOKEN` com o valor do cookie `XSRF-TOKEN`.
@@ -123,7 +135,7 @@ Para apagar também o banco persistido, use `docker compose down -v`.
 - `app/Http/Resources`: formato das respostas JSON
 - `app/Services`: regras de negócio
 - `database/migrations`: estrutura do banco de dados
-- `database/seeders`: papéis e dados fictícios de catálogo
+- `database/seeders`: papéis, 30 volumes fictícios e contas locais de demonstração
 - `routes/api.php`: rotas da API
 
-O seeder de catálogo cria uma editora, duas séries e quatro volumes fictícios. O contêiner de desenvolvimento usa `php artisan serve`; esta configuração é para desenvolvimento local, não para produção.
+O seeder de catálogo cria uma editora, duas séries e 30 volumes fictícios, incluindo um volume sem estoque e outro inativo para demonstrar as regras do catálogo. O contêiner de desenvolvimento usa `php artisan serve`; esta configuração é para desenvolvimento local, não para produção.
