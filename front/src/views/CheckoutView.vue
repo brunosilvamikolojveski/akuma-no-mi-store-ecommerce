@@ -244,10 +244,11 @@ function formatPaymentMethod(method) {
         <aside class="checkout-summary">
           <h2>Resumo do pedido</h2>
           <div v-for="item in items" :key="item.id" class="checkout-item-row">
-            <span>{{ item.quantity }} × {{ item.manga.title }}</span>
+            <span>{{ item.quantity }} × {{ item.manga.title }} · Vol. {{ item.manga.volume_number }}<br /><small>{{ formatPrice(item.unit_price) }} por unidade</small></span>
             <strong>{{ formatPrice(item.line_total) }}</strong>
           </div>
           <div class="summary-row"><span>Itens</span><span>{{ cartCount }}</span></div>
+          <div class="summary-row"><span>Frete</span><span>Grátis</span></div>
           <div class="summary-total"><span>Total</span><strong>{{ formatPrice(subtotal) }}</strong></div>
           <button
             class="checkout-submit"

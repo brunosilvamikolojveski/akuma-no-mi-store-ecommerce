@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '../services/auth';
+import CartMergeNotice from './CartMergeNotice.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -59,5 +60,6 @@ async function logout() {
         </div>
       </div>
     </div>
+    <CartMergeNotice />
   </header>
 </template>

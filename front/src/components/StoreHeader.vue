@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '../services/auth';
+import CartMergeNotice from './CartMergeNotice.vue';
 
 const props = defineProps({
   search: { type: String, default: '' },
@@ -104,5 +105,6 @@ async function logout() {
         <RouterLink to="/#sobre" :class="{ 'nav-active': route.path === '/' && route.hash === '#sobre' }">Sobre a Mangáverse</RouterLink>
       </div>
     </nav>
+    <CartMergeNotice />
   </header>
 </template>

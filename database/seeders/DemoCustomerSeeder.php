@@ -20,14 +20,17 @@ class DemoCustomerSeeder extends Seeder
             ['display_name' => 'Cliente'],
         );
 
-        foreach ([
+        $customers = [
             ['name' => 'Ana Cliente', 'email' => 'cliente1@mangaverse.test'],
             ['name' => 'Caio Cliente', 'email' => 'cliente2@mangaverse.test'],
             ['name' => 'Yumi Cliente', 'email' => 'cliente3@mangaverse.test'],
-        ] as $customer) {
+        ];
+
+        foreach ($customers as $customer) {
             User::updateOrCreate(
                 ['email' => $customer['email']],
-                $customer + [
+                [
+                    'name' => $customer['name'],
                     'role_id' => $role->id,
                     'password' => 'cliente123',
                 ],

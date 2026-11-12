@@ -67,19 +67,21 @@ class OrderService
     public function confirmPayment(User $user, int $orderId): Order
     {
         return DB::transaction(function () use ($user, $orderId) {
-            $order = $user->orders()->lockForUpdate()->findOrFail($orderId);
+            $order = Order::query()->lockForUpdate()->findOrFail($orderId);
+            abort_unless($order->user_id === $user->id, 403, 'Você não pode pagar o pedido de outro usuário.');
+
+            if ($order->status !== 'pending') {
+                abort(409, 'Somente pedidos aguardando pagamento podem ser pagos.');
+            }
+
             $payment = $order->payments()->lockForUpdate()->orderByDesc('id')->first();
 
             if (! $payment) {
                 abort(422, 'O pedido não possui pagamento.');
             }
 
-            if ($payment->status === 'paid') {
-                return $this->findFor($user, $orderId);
-            }
-
             if ($payment->status !== 'pending') {
-                abort(422, 'Este pagamento não pode ser confirmado.');
+                abort(409, 'Este pagamento não pode ser confirmado.');
             }
 
             $payment->update([
@@ -125,11 +127,13 @@ class OrderService
                 $manga = $mangas->get($cartItem->manga_id);
 
                 if (! $manga || ! $manga->is_active) {
-                    abort(422, 'Um dos mangás do carrinho não está mais disponível.');
+                    $title = $manga ? ($manga->title ?: $manga->series->title) : "Mangá #{$cartItem->manga_id}";
+                    abort(422, "{$title} não está mais disponível.");
                 }
 
                 if ($cartItem->quantity > $manga->stock) {
-                    abort(422, 'O estoque de um dos mangás não é suficiente para concluir o pedido.');
+                    $title = $manga->title ?: $manga->series->title;
+                    abort(422, "Estoque insuficiente para {$title}, volume {$manga->volume_number}. Disponível: {$manga->stock}.");
                 }
 
                 $subtotalCents += Money::toCents((string) $manga->price) * $cartItem->quantity;

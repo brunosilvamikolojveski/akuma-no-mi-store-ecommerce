@@ -9,6 +9,7 @@ const authors = ref([]);
 const categories = ref([]);
 const series = ref([]);
 const activeTab = ref('series');
+const seriesStatuses = { ongoing: 'Em andamento', completed: 'Concluída', hiatus: 'Hiato' };
 const loading = ref(true);
 const saving = ref(false);
 const pageError = ref('');
@@ -211,7 +212,7 @@ function recordTitle(record) {
             <article v-for="record in activeRecords" :key="record.id" class="admin-record-row">
               <div class="admin-record-icon">{{ activeTab === 'series' ? '冊' : activeTab === 'authors' ? '✎' : '◈' }}</div>
               <div class="admin-record-info">
-                <span>{{ activeTab === 'series' ? record.status : activeTab === 'categories' ? record.slug : `${record.series_count || 0} série(s)` }}</span>
+                <span>{{ activeTab === 'series' ? (seriesStatuses[record.status] || record.status) : activeTab === 'categories' ? record.slug : `${record.series_count || 0} série(s)` }}</span>
                 <h2>{{ recordTitle(record) }}</h2>
                 <p v-if="activeTab === 'series'">
                   {{ record.authors.map((author) => author.name).join(', ') || 'Sem autores associados' }}
@@ -244,20 +245,20 @@ function recordTitle(record) {
 
         <form class="admin-record-form" @submit.prevent="saveRecord">
           <template v-if="activeTab === 'authors'">
-            <label>Nome<input :value="form.name" maxlength="120" required @input="updateName('name', $event.target.value)" /><small v-if="fieldErrors.name">{{ fieldErrors.name[0] }}</small></label>
-            <label>Biografia (opcional)<textarea v-model="form.biography" rows="4"></textarea><small v-if="fieldErrors.biography">{{ fieldErrors.biography[0] }}</small></label>
+            <label>Nome<input :value="form.name" maxlength="120" required @input="updateName('name', $event.target.value)" /><small class="field-error" v-if="fieldErrors.name">{{ fieldErrors.name[0] }}</small></label>
+            <label>Biografia (opcional)<textarea v-model="form.biography" rows="4"></textarea><small class="field-error" v-if="fieldErrors.biography">{{ fieldErrors.biography[0] }}</small></label>
           </template>
 
           <template v-else-if="activeTab === 'categories'">
-            <label>Nome<input :value="form.name" maxlength="60" required @input="updateName('name', $event.target.value)" /><small v-if="fieldErrors.name">{{ fieldErrors.name[0] }}</small></label>
-            <label>Slug<input v-model="form.slug" maxlength="80" required @input="slugEdited = true" /><small>Usado na URL e nos filtros do catálogo.</small><small v-if="fieldErrors.slug">{{ fieldErrors.slug[0] }}</small></label>
+            <label>Nome<input :value="form.name" maxlength="60" required @input="updateName('name', $event.target.value)" /><small class="field-error" v-if="fieldErrors.name">{{ fieldErrors.name[0] }}</small></label>
+            <label>Slug<input v-model="form.slug" maxlength="80" required @input="slugEdited = true" /><small>Usado na URL e nos filtros do catálogo.</small><small class="field-error" v-if="fieldErrors.slug">{{ fieldErrors.slug[0] }}</small></label>
           </template>
 
           <template v-else>
-            <label>Título da série<input :value="form.title" maxlength="180" required @input="updateName('title', $event.target.value)" /><small v-if="fieldErrors.title">{{ fieldErrors.title[0] }}</small></label>
-            <label>Slug<input v-model="form.slug" maxlength="200" required @input="slugEdited = true" /><small v-if="fieldErrors.slug">{{ fieldErrors.slug[0] }}</small></label>
-            <label>Status<select v-model="form.status"><option value="ongoing">Em andamento</option><option value="completed">Concluída</option><option value="hiatus">Hiato</option></select><small v-if="fieldErrors.status">{{ fieldErrors.status[0] }}</small></label>
-            <label>Descrição (opcional)<textarea v-model="form.description" rows="3"></textarea><small v-if="fieldErrors.description">{{ fieldErrors.description[0] }}</small></label>
+            <label>Título da série<input :value="form.title" maxlength="180" required @input="updateName('title', $event.target.value)" /><small class="field-error" v-if="fieldErrors.title">{{ fieldErrors.title[0] }}</small></label>
+            <label>Slug<input v-model="form.slug" maxlength="200" required @input="slugEdited = true" /><small class="field-error" v-if="fieldErrors.slug">{{ fieldErrors.slug[0] }}</small></label>
+            <label>Status<select v-model="form.status"><option value="ongoing">Em andamento</option><option value="completed">Concluída</option><option value="hiatus">Hiato</option></select><small class="field-error" v-if="fieldErrors.status">{{ fieldErrors.status[0] }}</small></label>
+            <label>Descrição (opcional)<textarea v-model="form.description" rows="3"></textarea><small class="field-error" v-if="fieldErrors.description">{{ fieldErrors.description[0] }}</small></label>
             <fieldset class="admin-record-checkboxes">
               <legend>Autores</legend>
               <label v-for="author in authors" :key="author.id"><input v-model="form.author_ids" type="checkbox" :value="author.id" /> {{ author.name }}</label>

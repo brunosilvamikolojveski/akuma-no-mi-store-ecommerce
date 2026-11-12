@@ -1,21 +1,16 @@
-FROM php:8.4-cli-trixie
+FROM dunglas/frankenphp:1-php8.4
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# opcache: keeps compiled PHP in memory between requests
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libzip-dev \
-    && docker-php-ext-install pdo_mysql zip bcmath opcache \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN install-php-extensions pdo_mysql zip bcmath pdo_sqlite
 
 WORKDIR /app
-
 COPY . .
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 
-# no dev dependencies (phpunit etc.) and an optimized class map
-RUN composer install --no-dev --optimize-autoloader \
-    && composer check-platform-reqs --no-dev
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
+    && composer check-platform-reqs --no-dev \
+    && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 8000
-
-CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
+CMD ["sh", "-c", "php artisan storage:link --force && exec frankenphp run --config /etc/caddy/Caddyfile"]

@@ -7,7 +7,7 @@ import { useAuth } from '../services/auth';
 import { useCart } from '../services/cart';
 
 const { user, loadCurrentUser } = useAuth();
-const { cartCount } = useCart();
+const { cartCount, refreshCart } = useCart();
 const orders = ref([]);
 const loading = ref(true);
 const busyOrderId = ref(null);
@@ -21,7 +21,7 @@ async function loadOrders() {
     await loadCurrentUser();
 
     if (user.value) {
-      const response = await apiRequest('/api/orders');
+      const [response] = await Promise.all([apiRequest('/api/orders'), refreshCart()]);
       orders.value = response.data;
     }
   } catch (error) {
@@ -137,7 +137,7 @@ function formatDate(date) {
         <article v-for="order in orders" :key="order.id" class="order-card">
           <header class="order-card-header">
             <div>
-              <span class="eyebrow">Pedido #{{ order.id }}</span>
+              <RouterLink class="eyebrow continue-link" :to="`/pedidos/${order.id}`">Pedido #{{ order.id }} · Ver detalhes →</RouterLink>
               <p>Realizado em {{ formatDate(order.placed_at) }}</p>
             </div>
             <span class="order-status" :class="`status-${order.status}`">{{ statusLabel(order.status) }}</span>

@@ -51,6 +51,13 @@ class CartService
         return DB::transaction(function () use ($user, $sessionId, $itemId, $quantity) {
             $cart = $this->findOrCreateCart($user, $sessionId);
             $item = $cart->items()->findOrFail($itemId);
+
+            if ($quantity === 0) {
+                $item->delete();
+
+                return $this->loadCart($cart);
+            }
+
             $manga = Manga::query()->lockForUpdate()->findOrFail($item->manga_id);
 
             if (! $manga->is_active) {

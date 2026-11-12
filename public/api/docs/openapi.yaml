@@ -1,0 +1,3503 @@
+openapi: 3.0.3
+info:
+  title: Mangáverse API
+  version: 1.0.0
+  description: 'API Laravel com sessão/cookies do Sanctum. Use POST /api/auth/login com uma conta do README; a UI
+    mantém os cookies e envia CSRF automaticamente antes de operações de escrita. Não existe autenticação Bearer.
+    Exemplos usam IDs ilustrativos: consulte as listagens e substitua pelos IDs do seu banco. Os exemplos inválidos
+    demonstram respostas 422. Pedidos e pagamentos são fictícios, mas as operações alteram o banco. Respostas de
+    erro podem conter detalhes adicionais com APP_DEBUG=true.'
+servers:
+- url: /
+  description: Mesmo host da documentação, pelo proxy ou pela API.
+tags:
+- name: Sessão e CSRF
+- name: Autenticação
+- name: Perfil
+- name: Catálogo
+- name: Carrinho
+- name: Endereços
+- name: Pedidos
+- name: Admin · Mangás
+- name: Admin · Categorias
+- name: Admin · Autores
+- name: Admin · Séries
+- name: Admin · Pedidos
+paths:
+  /sanctum/csrf-cookie:
+    get:
+      tags:
+      - Sessão e CSRF
+      summary: Obter cookies de sessão e CSRF
+      description: 'Acesso: Público. O navegador armazena XSRF-TOKEN e o cookie de sessão. A UI faz esta chamada
+        automaticamente antes de cada escrita. Não retorna JSON.'
+      operationId: get_sanctum_csrf_cookie
+      responses:
+        '204':
+          description: Operação concluída.
+  /api/auth/register:
+    post:
+      tags:
+      - Autenticação
+      summary: Cadastrar cliente e iniciar sessão
+      description: 'Acesso: Público. Sempre cria papel customer. Funde o carrinho de visitante e regenera a sessão.
+        Campos cart_merge mostram ajustes e itens não transferidos.'
+      operationId: post_api_auth_register
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Novo Cliente
+                  email: novo@mangaverse.test
+                  password: SenhaDeTeste123!
+                  password_confirmation: SenhaDeTeste123!
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  name: ''
+                  email: email-invalido
+                  password: '123'
+                  password_confirmation: diferente
+  /api/auth/login:
+    post:
+      tags:
+      - Autenticação
+      summary: Entrar com e-mail e senha
+      description: 'Acesso: Público. Até cinco tentativas por minuto. Não emite token Bearer. Funde carrinhos somando
+        quantidades até o estoque, descarta o carrinho visitante e regenera a sessão.'
+      operationId: post_api_auth_login
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+        '429':
+          $ref: '#/components/responses/429'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  email: cliente1@mangaverse.test
+                  password: cliente123
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  email: email-invalido
+                  password: ''
+  /api/auth/logout:
+    post:
+      tags:
+      - Autenticação
+      summary: Sair e invalidar a sessão
+      description: 'Acesso: Autenticado. '
+      operationId: post_api_auth_logout
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Sessão encerrada.
+        '401':
+          $ref: '#/components/responses/401'
+        '419':
+          $ref: '#/components/responses/419'
+  /api/user:
+    get:
+      tags:
+      - Perfil
+      summary: Consultar minha conta
+      description: 'Acesso: Autenticado. '
+      operationId: get_api_user
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+    patch:
+      tags:
+      - Perfil
+      summary: Atualizar nome e e-mail
+      description: 'Acesso: Autenticado. Não altera senha nem papel.'
+      operationId: patch_api_user
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Ana Cliente
+                  email: cliente1@mangaverse.test
+  /api/mangas:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar volumes ativos
+      description: 'Acesso: Público. Inclui volumes ativos sem estoque. Ordenação padrão: created_at decrescente,
+        depois ID decrescente.'
+      operationId: get_api_mangas
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Manga'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                required:
+                - data
+                - links
+                - meta
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 100
+        description: Busca em título do volume, descrição e título da série.
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 80
+          example: aventura
+        description: Slug de categoria.
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - newest
+          - price_asc
+          - price_desc
+          default: newest
+        description: ''
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          example: 12
+          minimum: 1
+          maximum: 50
+        description: 'Padrão: 12.'
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+        description: ''
+  /api/mangas/{manga}:
+    get:
+      tags:
+      - Catálogo
+      summary: Consultar detalhe de volume ativo
+      description: 'Acesso: Público. Volume inexistente ou inativo retorna 404. available_quantity informa o estoque.'
+      operationId: get_api_mangas_manga
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MangaDetail'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: manga
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/categories:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar categorias
+      description: 'Acesso: Público. '
+      operationId: get_api_categories
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                required:
+                - data
+  /api/authors:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar autores
+      description: 'Acesso: Público. '
+      operationId: get_api_authors
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Author'
+                required:
+                - data
+  /api/authors/{author}:
+    get:
+      tags:
+      - Catálogo
+      summary: Consultar autor
+      description: 'Acesso: Público. '
+      operationId: get_api_authors_author
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: author
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/series:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar séries
+      description: 'Acesso: Público. Sem paginação. Inclui autores, categorias, editora e contagem de volumes.'
+      operationId: get_api_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Series'
+                required:
+                - data
+  /api/series/{series}:
+    get:
+      tags:
+      - Catálogo
+      summary: Consultar série pelo slug
+      description: 'Acesso: Público. '
+      operationId: get_api_series_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: series
+        in: path
+        required: true
+        schema:
+          type: string
+          example: one-piece
+  /api/cart:
+    get:
+      tags:
+      - Carrinho
+      summary: Consultar ou criar carrinho
+      description: 'Acesso: Público. Sessão identifica o carrinho visitante; após login, usa o carrinho da conta.
+        Totais usam preços atuais do banco. Pode retornar 201 quando cria o carrinho nesta requisição.'
+      operationId: get_api_cart
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '201':
+          description: Carrinho criado e retornado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+    delete:
+      tags:
+      - Carrinho
+      summary: Esvaziar o carrinho
+      description: 'Acesso: Público. '
+      operationId: delete_api_cart
+      responses:
+        '204':
+          description: Operação concluída.
+        '419':
+          $ref: '#/components/responses/419'
+  /api/cart/items:
+    post:
+      tags:
+      - Carrinho
+      summary: Adicionar volume e somar quantidade
+      description: 'Acesso: Público. Sessão identifica o carrinho visitante; após login, usa o carrinho da conta.
+        Totais usam preços atuais do banco. Pode retornar 201 quando cria o carrinho nesta requisição.'
+      operationId: post_api_cart_items
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+        '201':
+          description: Carrinho criado e retornado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  manga_id: 1
+                  quantity: 1
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  manga_id: 1
+                  quantity: 0
+  /api/cart/items/{cartItem}:
+    patch:
+      tags:
+      - Carrinho
+      summary: Alterar quantidade ou remover com zero
+      description: 'Acesso: Público. Sessão identifica o carrinho visitante; após login, usa o carrinho da conta.
+        Totais usam preços atuais do banco. Pode retornar 201 quando cria o carrinho nesta requisição.'
+      operationId: patch_api_cart_items_cartItem
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: cartItem
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  quantity: 2
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  quantity: -1
+    delete:
+      tags:
+      - Carrinho
+      summary: Remover uma linha do carrinho
+      description: 'Acesso: Público. O item deve pertencer ao carrinho atual.'
+      operationId: delete_api_cart_items_cartItem
+      responses:
+        '204':
+          description: Operação concluída.
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: cartItem
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/addresses:
+    get:
+      tags:
+      - Endereços
+      summary: Listar endereços
+      description: 'Acesso: Autenticado. '
+      operationId: get_api_addresses
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+    post:
+      tags:
+      - Endereços
+      summary: Cadastrar address
+      description: 'Acesso: Autenticado. O primeiro endereço é padrão. Marcar outro como padrão desmarca o anterior.'
+      operationId: post_api_addresses
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  label: Principal
+                  recipient_name: Ana Cliente
+                  postal_code: 80000-000
+                  state: PR
+                  city: Curitiba
+                  neighborhood: Centro
+                  street: Rua de Demonstração
+                  number: '123'
+                  complement: null
+                  phone: null
+                  is_default: true
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  postal_code: '123'
+                  state: Paraná
+  /api/addresses/{address}:
+    get:
+      tags:
+      - Endereços
+      summary: Consultar address
+      description: 'Acesso: Autenticado. '
+      operationId: get_api_addresses_address
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+    put:
+      tags:
+      - Endereços
+      summary: Atualizar address
+      description: 'Acesso: Autenticado. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: put_api_addresses_address
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  label: Casa
+                  is_default: true
+    patch:
+      tags:
+      - Endereços
+      summary: Atualizar address
+      description: 'Acesso: Autenticado. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: patch_api_addresses_address
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  label: Casa
+                  is_default: true
+    delete:
+      tags:
+      - Endereços
+      summary: Excluir address
+      description: 'Acesso: Autenticado. Acesso somente aos próprios endereços. Pedidos mantêm o endereço congelado.
+        Se excluir o padrão, o primeiro restante vira padrão.'
+      operationId: delete_api_addresses_address
+      responses:
+        '204':
+          description: Operação concluída.
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/orders:
+    get:
+      tags:
+      - Pedidos
+      summary: Listar meus pedidos
+      description: 'Acesso: Autenticado. Sem paginação, do ID mais recente ao mais antigo.'
+      operationId: get_api_orders
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+    post:
+      tags:
+      - Pedidos
+      summary: Criar pedido a partir do carrinho
+      description: 'Acesso: Autenticado. Valida endereço da conta, estoque e disponibilidade. Em transação, congela
+        nomes e preços, baixa estoque, cria pagamento pending e esvazia o carrinho. Frete gratuito. Carrinho vazio
+        retorna 422; falha de estoque identifica o produto. Valores enviados pelo cliente não definem o total.'
+      operationId: post_api_orders
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  address_id: 1
+                  payment_method: pix
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  address_id: 0
+                  payment_method: dinheiro
+  /api/orders/{order}:
+    get:
+      tags:
+      - Pedidos
+      summary: Consultar meu pedido
+      description: 'Acesso: Autenticado. Pedido alheio retorna 404. O admin consulta todos os pedidos na listagem
+        administrativa.'
+      operationId: get_api_orders_order
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/orders/{order}/confirm-payment:
+    post:
+      tags:
+      - Pedidos
+      summary: Confirmar pagamento simulado
+      description: 'Acesso: Autenticado. Somente o dono. Pedido deve estar pending, senão 409. Atualiza pedido e
+        pagamento para paid e registra paid_at. Não solicita dados de cartão nem usa gateway.'
+      operationId: post_api_orders_order_confirm_payment
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/orders/{order}/cancel:
+    post:
+      tags:
+      - Pedidos
+      summary: Cancelar meu pedido pendente
+      description: 'Acesso: Autenticado. Somente pedido próprio em pending. Devolve estoque e cancela pagamento
+        em uma transação.'
+      operationId: post_api_orders_order_cancel
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/admin/mangas:
+    get:
+      tags:
+      - Admin · Mangás
+      summary: Listar catálogo administrativo
+      description: 'Acesso: Admin. Inclui volumes inativos e o estoque numérico.'
+      operationId: get_api_admin_mangas
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminManga'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                required:
+                - data
+                - links
+                - meta
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 100
+        description: Busca em título do volume, descrição e título da série.
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 80
+          example: aventura
+        description: Slug de categoria.
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - newest
+          - price_asc
+          - price_desc
+          default: newest
+        description: ''
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          example: 12
+          minimum: 1
+          maximum: 50
+        description: 'Padrão: 12.'
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+        description: ''
+    post:
+      tags:
+      - Admin · Mangás
+      summary: Cadastrar volume e capa
+      description: 'Acesso: Admin. JSON para dados ou multipart/form-data com cover_image. Upload persistido no
+        storage public; arquivo até 2 MB.'
+      operationId: post_api_admin_mangas
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminManga'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MangaCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  series_id: 1
+                  volume_number: 11
+                  price: 39.9
+                  stock: 12
+                  is_active: true
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  series_id: 1
+                  volume_number: 0
+                  price: -1
+                  stock: -1
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MangaUpload'
+  /api/admin/mangas/{manga}:
+    patch:
+      tags:
+      - Admin · Mangás
+      summary: Atualizar volume, estoque ou capa
+      description: 'Acesso: Admin. JSON para atualização parcial. Para capa, a UI envia multipart por POST com _method=PATCH,
+        conforme o formulário administrativo. Nova capa remove o arquivo local anterior. Preços e nomes de pedidos
+        antigos permanecem congelados.'
+      operationId: patch_api_admin_mangas_manga
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminManga'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: manga
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MangaUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  price: 42.9
+                  stock: 8
+                  is_active: true
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MangaUpdateUpload'
+    delete:
+      tags:
+      - Admin · Mangás
+      summary: Desativar volume
+      description: 'Acesso: Admin. Exclusão lógica: altera is_active para false. Não remove fisicamente, não apaga
+        capa e preserva pedidos antigos.'
+      operationId: delete_api_admin_mangas_manga
+      responses:
+        '204':
+          description: Operação concluída.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: manga
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/admin/categories:
+    get:
+      tags:
+      - Admin · Categorias
+      summary: Listar admin · categorias
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_categories
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+    post:
+      tags:
+      - Admin · Categorias
+      summary: Cadastrar category
+      description: 'Acesso: Admin. '
+      operationId: post_api_admin_categories
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Mistério
+                  slug: misterio
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  name: ''
+                  slug: ''
+  /api/admin/categories/{category}:
+    get:
+      tags:
+      - Admin · Categorias
+      summary: Consultar category
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_categories_category
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+    put:
+      tags:
+      - Admin · Categorias
+      summary: Atualizar category
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: put_api_admin_categories_category
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Mistério
+                  slug: misterio
+    patch:
+      tags:
+      - Admin · Categorias
+      summary: Atualizar category
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: patch_api_admin_categories_category
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Mistério
+                  slug: misterio
+    delete:
+      tags:
+      - Admin · Categorias
+      summary: Excluir category
+      description: 'Acesso: Admin. Exclui a categoria e os vínculos com séries via cascade. As séries e seus volumes
+        permanecem; outros vínculos de categoria são mantidos.'
+      operationId: delete_api_admin_categories_category
+      responses:
+        '204':
+          description: Operação concluída.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/admin/authors:
+    get:
+      tags:
+      - Admin · Autores
+      summary: Listar admin · autores
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_authors
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+    post:
+      tags:
+      - Admin · Autores
+      summary: Cadastrar author
+      description: 'Acesso: Admin. '
+      operationId: post_api_admin_authors
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Autor de demonstração
+                  biography: Biografia de exemplo.
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  name: ''
+  /api/admin/authors/{author}:
+    get:
+      tags:
+      - Admin · Autores
+      summary: Consultar author
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_authors_author
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: author
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+    put:
+      tags:
+      - Admin · Autores
+      summary: Atualizar author
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: put_api_admin_authors_author
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: author
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Autor de demonstração
+                  biography: Biografia de exemplo.
+    patch:
+      tags:
+      - Admin · Autores
+      summary: Atualizar author
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: patch_api_admin_authors_author
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Author'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: author
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  name: Autor de demonstração
+                  biography: Biografia de exemplo.
+    delete:
+      tags:
+      - Admin · Autores
+      summary: Excluir author
+      description: 'Acesso: Admin. Exclui o autor e seus vínculos com séries; não exclui as séries.'
+      operationId: delete_api_admin_authors_author
+      responses:
+        '204':
+          description: Operação concluída.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: author
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/admin/series:
+    get:
+      tags:
+      - Admin · Séries
+      summary: Listar admin · séries
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+    post:
+      tags:
+      - Admin · Séries
+      summary: Cadastrar series
+      description: 'Acesso: Admin. '
+      operationId: post_api_admin_series
+      responses:
+        '201':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesCreate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  title: Série de demonstração
+                  slug: serie-demonstracao
+                  status: ongoing
+                  author_ids:
+                  - 1
+                  category_ids:
+                  - 1
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  title: ''
+                  slug: ''
+  /api/admin/series/{series}:
+    get:
+      tags:
+      - Admin · Séries
+      summary: Consultar series
+      description: 'Acesso: Admin. '
+      operationId: get_api_admin_series_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+      parameters:
+      - name: series
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+    put:
+      tags:
+      - Admin · Séries
+      summary: Atualizar series
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: put_api_admin_series_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: series
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  title: Série de demonstração
+                  slug: serie-demonstracao
+                  status: ongoing
+                  author_ids:
+                  - 1
+                  category_ids:
+                  - 1
+    patch:
+      tags:
+      - Admin · Séries
+      summary: Atualizar series
+      description: 'Acesso: Admin. Atualização parcial; somente os campos enviados são alterados.'
+      operationId: patch_api_admin_series_series
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Series'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: series
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  title: Série de demonstração
+                  slug: serie-demonstracao
+                  status: ongoing
+                  author_ids:
+                  - 1
+                  category_ids:
+                  - 1
+    delete:
+      tags:
+      - Admin · Séries
+      summary: Excluir series
+      description: 'Acesso: Admin. Série com qualquer volume cadastrado retorna 409.'
+      operationId: delete_api_admin_series_series
+      responses:
+        '204':
+          description: Operação concluída.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
+        '419':
+          $ref: '#/components/responses/419'
+      parameters:
+      - name: series
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+  /api/admin/orders:
+    get:
+      tags:
+      - Admin · Pedidos
+      summary: Listar todos os pedidos
+      description: 'Acesso: Admin. Sem paginação, do mais recente ao mais antigo.'
+      operationId: get_api_admin_orders
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - pending
+          - paid
+          - shipped
+          - delivered
+          - cancelled
+        description: ''
+  /api/admin/orders/{order}/status:
+    patch:
+      tags:
+      - Admin · Pedidos
+      summary: Avançar status ou cancelar pedido
+      description: 'Acesso: Admin. Transições permitidas: paid → shipped, shipped → delivered, pending → cancelled.
+        Cancelamento devolve estoque. Não permite marcar pedido como pago por esta rota.'
+      operationId: patch_api_admin_orders_order_status
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
+        '419':
+          $ref: '#/components/responses/419'
+        '422':
+          $ref: '#/components/responses/422'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+            examples:
+              valido:
+                summary: Entrada válida; ajuste os IDs para os dados do banco.
+                value:
+                  status: shipped
+              invalido:
+                summary: Entrada inválida para demonstrar a resposta 422.
+                value:
+                  status: paid
+components:
+  schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+      required:
+      - id
+      - name
+      - slug
+      example:
+        id: 1
+        name: Aventura
+        slug: aventura
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        biography:
+          type: string
+          nullable: true
+        series_count:
+          type: integer
+      required:
+      - id
+      - name
+      - biography
+      example:
+        id: 1
+        name: Eiichiro Oda
+        biography: null
+        series_count: 1
+    Series:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        publisher:
+          type: string
+        authors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+            required:
+            - id
+            - name
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              slug:
+                type: string
+            required:
+            - id
+            - name
+            - slug
+        mangas_count:
+          type: integer
+      required:
+      - id
+      - title
+      - slug
+      - description
+      - status
+      - publisher
+      - authors
+      - categories
+      example:
+        id: 1
+        title: One Piece
+        slug: one-piece
+        description: Uma jornada de piratas.
+        status: ongoing
+        publisher: Panini
+        authors:
+        - id: 1
+          name: Eiichiro Oda
+        categories:
+        - id: 1
+          name: Aventura
+          slug: aventura
+        mangas_count: 10
+    Manga:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        volume_number:
+          type: integer
+        isbn:
+          type: string
+          nullable: true
+        description:
+          type: string
+        price:
+          type: string
+        in_stock:
+          type: boolean
+        is_active:
+          type: boolean
+        cover_image_url:
+          type: string
+          format: uri
+          nullable: true
+        published_at:
+          type: string
+          format: date
+          nullable: true
+        series:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            slug:
+              type: string
+            status:
+              type: string
+            publisher:
+              type: string
+            authors:
+              type: array
+              items:
+                type: string
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                required:
+                - name
+                - slug
+          required:
+          - id
+          - title
+          - slug
+          - status
+          - publisher
+          - authors
+          - categories
+      required:
+      - id
+      - title
+      - volume_number
+      - isbn
+      - description
+      - price
+      - in_stock
+      - is_active
+      - cover_image_url
+      - published_at
+      - series
+      example:
+        id: 1
+        title: One Piece
+        volume_number: 1
+        isbn: null
+        description: Volume 1 de One Piece.
+        price: '39.90'
+        in_stock: true
+        is_active: true
+        cover_image_url: null
+        published_at: null
+        series:
+          id: 1
+          title: One Piece
+          slug: one-piece
+          status: ongoing
+          publisher: Panini
+          authors:
+          - Eiichiro Oda
+          categories:
+          - name: Aventura
+            slug: aventura
+    MangaDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        volume_number:
+          type: integer
+        isbn:
+          type: string
+          nullable: true
+        description:
+          type: string
+        price:
+          type: string
+        in_stock:
+          type: boolean
+        is_active:
+          type: boolean
+        cover_image_url:
+          type: string
+          format: uri
+          nullable: true
+        published_at:
+          type: string
+          format: date
+          nullable: true
+        series:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            slug:
+              type: string
+            status:
+              type: string
+            publisher:
+              type: string
+            authors:
+              type: array
+              items:
+                type: string
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                required:
+                - name
+                - slug
+          required:
+          - id
+          - title
+          - slug
+          - status
+          - publisher
+          - authors
+          - categories
+        available_quantity:
+          type: integer
+      required:
+      - id
+      - title
+      - volume_number
+      - isbn
+      - description
+      - price
+      - in_stock
+      - is_active
+      - cover_image_url
+      - published_at
+      - series
+      - available_quantity
+      example:
+        id: 1
+        title: One Piece
+        volume_number: 1
+        isbn: null
+        description: Volume 1 de One Piece.
+        price: '39.90'
+        in_stock: true
+        is_active: true
+        cover_image_url: null
+        published_at: null
+        series:
+          id: 1
+          title: One Piece
+          slug: one-piece
+          status: ongoing
+          publisher: Panini
+          authors:
+          - Eiichiro Oda
+          categories:
+          - name: Aventura
+            slug: aventura
+        available_quantity: 12
+    AdminManga:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        volume_number:
+          type: integer
+        isbn:
+          type: string
+          nullable: true
+        description:
+          type: string
+        price:
+          type: string
+        in_stock:
+          type: boolean
+        is_active:
+          type: boolean
+        cover_image_url:
+          type: string
+          format: uri
+          nullable: true
+        published_at:
+          type: string
+          format: date
+          nullable: true
+        series:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            slug:
+              type: string
+            status:
+              type: string
+            publisher:
+              type: string
+            authors:
+              type: array
+              items:
+                type: string
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                required:
+                - name
+                - slug
+          required:
+          - id
+          - title
+          - slug
+          - status
+          - publisher
+          - authors
+          - categories
+        stock:
+          type: integer
+      required:
+      - id
+      - title
+      - volume_number
+      - isbn
+      - description
+      - price
+      - in_stock
+      - is_active
+      - cover_image_url
+      - published_at
+      - series
+      - stock
+      example:
+        id: 1
+        title: One Piece
+        volume_number: 1
+        isbn: null
+        description: Volume 1 de One Piece.
+        price: '39.90'
+        in_stock: true
+        is_active: true
+        cover_image_url: null
+        published_at: null
+        series:
+          id: 1
+          title: One Piece
+          slug: one-piece
+          status: ongoing
+          publisher: Panini
+          authors:
+          - Eiichiro Oda
+          categories:
+          - name: Aventura
+            slug: aventura
+        stock: 12
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        recipient_name:
+          type: string
+        postal_code:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        neighborhood:
+          type: string
+        street:
+          type: string
+        number:
+          type: string
+        complement:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        is_default:
+          type: boolean
+      required:
+      - id
+      - label
+      - recipient_name
+      - postal_code
+      - state
+      - city
+      - neighborhood
+      - street
+      - number
+      - complement
+      - phone
+      - is_default
+      example:
+        id: 1
+        label: Principal
+        recipient_name: Ana Cliente
+        postal_code: 80000-000
+        state: PR
+        city: Curitiba
+        neighborhood: Centro
+        street: Rua de Demonstração
+        number: '123'
+        complement: null
+        phone: null
+        is_default: true
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        quantity:
+          type: integer
+        unit_price:
+          type: string
+        line_total:
+          type: string
+        manga:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            volume_number:
+              type: integer
+            series:
+              type: string
+            is_active:
+              type: boolean
+            in_stock:
+              type: boolean
+          required:
+          - id
+          - title
+          - volume_number
+          - series
+          - is_active
+          - in_stock
+      required:
+      - id
+      - quantity
+      - unit_price
+      - line_total
+      - manga
+      example:
+        id: 1
+        quantity: 1
+        unit_price: '39.90'
+        line_total: '39.90'
+        manga:
+          id: 1
+          title: One Piece
+          volume_number: 1
+          series: One Piece
+          is_active: true
+          in_stock: true
+    Cart:
+      type: object
+      properties:
+        id:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: string
+      required:
+      - id
+      - items
+      - subtotal
+      example:
+        id: 1
+        items:
+        - id: 1
+          quantity: 1
+          unit_price: '39.90'
+          line_total: '39.90'
+          manga:
+            id: 1
+            title: One Piece
+            volume_number: 1
+            series: One Piece
+            is_active: true
+            in_stock: true
+        subtotal: '39.90'
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        manga_id:
+          type: integer
+        manga_title:
+          type: string
+        volume_number:
+          type: integer
+        isbn:
+          type: string
+          nullable: true
+        unit_price:
+          type: string
+        quantity:
+          type: integer
+        line_total:
+          type: string
+      required:
+      - id
+      - manga_id
+      - manga_title
+      - volume_number
+      - isbn
+      - unit_price
+      - quantity
+      - line_total
+      example:
+        id: 1
+        manga_id: 1
+        manga_title: One Piece
+        volume_number: 1
+        isbn: null
+        unit_price: '39.90'
+        quantity: 1
+        line_total: '39.90'
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount:
+          type: string
+        method:
+          type: string
+        status:
+          type: string
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - amount
+      - method
+      - status
+      - paid_at
+      example:
+        id: 1
+        amount: '39.90'
+        method: pix
+        status: pending
+        paid_at: null
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum:
+          - pending
+          - paid
+          - shipped
+          - delivered
+          - cancelled
+        subtotal:
+          type: string
+        shipping_cost:
+          type: string
+        total:
+          type: string
+        shipping_address:
+          type: object
+          properties:
+            recipient_name:
+              type: string
+            postal_code:
+              type: string
+            state:
+              type: string
+            city:
+              type: string
+            neighborhood:
+              type: string
+            street:
+              type: string
+            number:
+              type: string
+            complement:
+              type: string
+              nullable: true
+          required:
+          - recipient_name
+          - postal_code
+          - state
+          - city
+          - neighborhood
+          - street
+          - number
+          - complement
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        placed_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
+      - subtotal
+      - shipping_cost
+      - total
+      - shipping_address
+      - items
+      - payments
+      - placed_at
+      example:
+        id: 1
+        status: pending
+        subtotal: '39.90'
+        shipping_cost: '0.00'
+        total: '39.90'
+        shipping_address:
+          recipient_name: Ana Cliente
+          postal_code: 80000-000
+          state: PR
+          city: Curitiba
+          neighborhood: Centro
+          street: Rua de Demonstração
+          number: '123'
+          complement: null
+        items:
+        - id: 1
+          manga_id: 1
+          manga_title: One Piece
+          volume_number: 1
+          isbn: null
+          unit_price: '39.90'
+          quantity: 1
+          line_total: '39.90'
+        payments:
+        - id: 1
+          amount: '39.90'
+          method: pix
+          status: pending
+          paid_at: null
+        placed_at: '2026-11-12T12:00:00.000000Z'
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - customer
+          - admin
+      required:
+      - id
+      - name
+      - email
+      - role
+      example:
+        id: 1
+        name: Ana Cliente
+        email: cliente1@mangaverse.test
+        role: customer
+    AuthResult:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+        cart_merge:
+          type: object
+          properties:
+            adjusted_items:
+              type: array
+              items:
+                type: object
+                properties:
+                  manga_id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: One Piece
+                  requested_quantity:
+                    type: integer
+                    example: 5
+                  kept_quantity:
+                    type: integer
+                    example: 2
+            removed_items:
+              type: array
+              items:
+                type: object
+                properties:
+                  manga_id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: One Piece
+      required:
+      - data
+      - cart_merge
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Não foi possível concluir a solicitação.
+      required:
+      - message
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The quantity field must be at least 0.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            quantity:
+            - The quantity field must be at least 0.
+      required:
+      - message
+      - errors
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Novo Cliente
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Deve ser único.
+          example: novo@mangaverse.test
+        password:
+          type: string
+          minLength: 8
+          format: password
+          example: SenhaDeTeste123!
+        password_confirmation:
+          type: string
+          format: password
+          description: Igual a password.
+          example: SenhaDeTeste123!
+      required:
+      - name
+      - email
+      - password
+      - password_confirmation
+      example:
+        name: Novo Cliente
+        email: novo@mangaverse.test
+        password: SenhaDeTeste123!
+        password_confirmation: SenhaDeTeste123!
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required:
+      - email
+      - password
+      example:
+        email: cliente1@mangaverse.test
+        password: cliente123
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Único entre as outras contas.
+      example:
+        name: Ana Cliente
+        email: cliente1@mangaverse.test
+    CartItemCreate:
+      type: object
+      properties:
+        manga_id:
+          type: integer
+          example: 1
+          description: ID existente e ativo; consulte o catálogo.
+        quantity:
+          type: integer
+          example: 1
+          minimum: 1
+      required:
+      - manga_id
+      - quantity
+      example:
+        manga_id: 1
+        quantity: 1
+    CartItemUpdate:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          example: 1
+          minimum: 0
+          description: Zero remove a linha. O restante não pode superar o estoque.
+      required:
+      - quantity
+      example:
+        quantity: 2
+    AddressCreate:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 50
+        recipient_name:
+          type: string
+          maxLength: 120
+        postal_code:
+          type: string
+          maxLength: 9
+          pattern: ^\d{5}-?\d{3}$
+          example: 80000-000
+        state:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          description: Convertido para maiúsculas antes de validar.
+          example: PR
+        city:
+          type: string
+          maxLength: 100
+        neighborhood:
+          type: string
+          maxLength: 100
+        street:
+          type: string
+          maxLength: 160
+        number:
+          type: string
+          maxLength: 20
+        complement:
+          type: string
+          nullable: true
+          maxLength: 100
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        is_default:
+          type: boolean
+      required:
+      - recipient_name
+      - postal_code
+      - state
+      - city
+      - neighborhood
+      - street
+      - number
+      example:
+        label: Principal
+        recipient_name: Ana Cliente
+        postal_code: 80000-000
+        state: PR
+        city: Curitiba
+        neighborhood: Centro
+        street: Rua de Demonstração
+        number: '123'
+        complement: null
+        phone: null
+        is_default: true
+    AddressUpdate:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 50
+        recipient_name:
+          type: string
+          maxLength: 120
+        postal_code:
+          type: string
+          maxLength: 9
+          pattern: ^\d{5}-?\d{3}$
+          example: 80000-000
+        state:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          description: Convertido para maiúsculas antes de validar.
+          example: PR
+        city:
+          type: string
+          maxLength: 100
+        neighborhood:
+          type: string
+          maxLength: 100
+        street:
+          type: string
+          maxLength: 160
+        number:
+          type: string
+          maxLength: 20
+        complement:
+          type: string
+          nullable: true
+          maxLength: 100
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        is_default:
+          type: boolean
+      example:
+        label: Casa
+        is_default: true
+    OrderCreate:
+      type: object
+      properties:
+        address_id:
+          type: integer
+          example: 1
+          description: Endereço existente e pertencente à conta.
+        payment_method:
+          type: string
+          enum:
+          - pix
+          - boleto
+          - credit_card
+          example: pix
+      required:
+      - address_id
+      - payment_method
+      example:
+        address_id: 1
+        payment_method: pix
+    OrderStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - shipped
+          - delivered
+          - cancelled
+          example: shipped
+      required:
+      - status
+      example:
+        status: shipped
+    CategoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 60
+          description: Único.
+        slug:
+          type: string
+          maxLength: 80
+          description: Único; usado no filtro por categoria.
+      required:
+      - name
+      - slug
+      example:
+        name: Mistério
+        slug: misterio
+    AuthorCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        biography:
+          type: string
+          nullable: true
+      required:
+      - name
+      example:
+        name: Autor de demonstração
+        biography: Biografia de exemplo.
+    SeriesCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        slug:
+          type: string
+          maxLength: 200
+          description: Único.
+        publisher_id:
+          type: integer
+          example: 1
+          nullable: true
+          description: Editora existente. A API não possui CRUD de editoras.
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          maxLength: 30
+          description: Campo livre de até 30 caracteres; interface usa ongoing, completed e hiatus.
+          example: ongoing
+        author_ids:
+          type: array
+          items:
+            type: integer
+            example: 1
+            description: ID existente, sem repetições.
+        category_ids:
+          type: array
+          items:
+            type: integer
+            example: 1
+            description: ID existente, sem repetições.
+      required:
+      - title
+      - slug
+      example:
+        title: Série de demonstração
+        slug: serie-demonstracao
+        status: ongoing
+        author_ids:
+        - 1
+        category_ids:
+        - 1
+    MangaCreate:
+      type: object
+      properties:
+        series_id:
+          type: integer
+          example: 1
+          description: Série existente.
+        volume_number:
+          type: integer
+          example: 1
+          minimum: 1
+          maximum: 65535
+          description: Único dentro da série.
+        title:
+          type: string
+          nullable: true
+          maxLength: 180
+          description: Quando vazio, a resposta usa o título da série.
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Único quando informado.
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          minimum: 0.01
+          maximum: 99999999.99
+          example: 39.9
+        stock:
+          type: integer
+          example: 12
+          minimum: 0
+        cover_image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho em storage public ou URL HTTP(S).
+        published_at:
+          type: string
+          nullable: true
+          format: date
+        is_active:
+          type: boolean
+          example: true
+      required:
+      - series_id
+      - volume_number
+      - price
+      - stock
+      example:
+        series_id: 1
+        volume_number: 11
+        price: 39.9
+        stock: 12
+        is_active: true
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 60
+          description: Único.
+        slug:
+          type: string
+          maxLength: 80
+          description: Único; usado no filtro por categoria.
+      example:
+        name: Mistério
+        slug: misterio
+    AuthorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        biography:
+          type: string
+          nullable: true
+      example:
+        name: Autor de demonstração
+        biography: Biografia de exemplo.
+    SeriesUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        slug:
+          type: string
+          maxLength: 200
+          description: Único.
+        publisher_id:
+          type: integer
+          example: 1
+          nullable: true
+          description: Editora existente. A API não possui CRUD de editoras.
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          maxLength: 30
+          description: Campo livre de até 30 caracteres; interface usa ongoing, completed e hiatus.
+          example: ongoing
+        author_ids:
+          type: array
+          items:
+            type: integer
+            example: 1
+            description: ID existente, sem repetições.
+        category_ids:
+          type: array
+          items:
+            type: integer
+            example: 1
+            description: ID existente, sem repetições.
+      example:
+        title: Série de demonstração
+        slug: serie-demonstracao
+        status: ongoing
+        author_ids:
+        - 1
+        category_ids:
+        - 1
+    MangaUpdate:
+      type: object
+      properties:
+        series_id:
+          type: integer
+          example: 1
+          description: Série existente.
+        volume_number:
+          type: integer
+          example: 1
+          minimum: 1
+          maximum: 65535
+          description: Único dentro da série.
+        title:
+          type: string
+          nullable: true
+          maxLength: 180
+          description: Quando vazio, a resposta usa o título da série.
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Único quando informado.
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          minimum: 0.01
+          maximum: 99999999.99
+          example: 39.9
+        stock:
+          type: integer
+          example: 12
+          minimum: 0
+        cover_image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho em storage public ou URL HTTP(S).
+        published_at:
+          type: string
+          nullable: true
+          format: date
+        is_active:
+          type: boolean
+          example: true
+      example:
+        price: 42.9
+        stock: 8
+        is_active: true
+    MangaUpload:
+      type: object
+      properties:
+        series_id:
+          type: integer
+          example: 1
+          description: Série existente.
+        volume_number:
+          type: integer
+          example: 1
+          minimum: 1
+          maximum: 65535
+          description: Único dentro da série.
+        title:
+          type: string
+          nullable: true
+          maxLength: 180
+          description: Quando vazio, a resposta usa o título da série.
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Único quando informado.
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          minimum: 0.01
+          maximum: 99999999.99
+          example: 39.9
+        stock:
+          type: integer
+          example: 12
+          minimum: 0
+        cover_image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho em storage public ou URL HTTP(S).
+        published_at:
+          type: string
+          nullable: true
+          format: date
+        is_active:
+          type: integer
+          example: 1
+          enum:
+          - 0
+          - 1
+          description: Em multipart, envie 1 para ativo e 0 para inativo.
+        cover_image:
+          type: string
+          format: binary
+          description: JPG, JPEG, PNG ou WebP; até 2048 KB. Uma imagem enviada substitui a capa anterior.
+      required:
+      - series_id
+      - volume_number
+      - price
+      - stock
+    MangaUpdateUpload:
+      type: object
+      properties:
+        series_id:
+          type: integer
+          example: 1
+          description: Série existente.
+        volume_number:
+          type: integer
+          example: 1
+          minimum: 1
+          maximum: 65535
+          description: Único dentro da série.
+        title:
+          type: string
+          nullable: true
+          maxLength: 180
+          description: Quando vazio, a resposta usa o título da série.
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Único quando informado.
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          minimum: 0.01
+          maximum: 99999999.99
+          example: 39.9
+        stock:
+          type: integer
+          example: 12
+          minimum: 0
+        cover_image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho em storage public ou URL HTTP(S).
+        published_at:
+          type: string
+          nullable: true
+          format: date
+        is_active:
+          type: integer
+          example: 1
+          enum:
+          - 0
+          - 1
+          description: Em multipart, envie 1 para ativo e 0 para inativo.
+        cover_image:
+          type: string
+          format: binary
+          description: JPG, JPEG, PNG ou WebP; até 2048 KB. Uma imagem enviada substitui a capa anterior.
+    PaginationLinks:
+      type: object
+      properties:
+        first:
+          type: string
+          nullable: true
+          format: uri
+        last:
+          type: string
+          nullable: true
+          format: uri
+        prev:
+          type: string
+          nullable: true
+          format: uri
+        next:
+          type: string
+          nullable: true
+          format: uri
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        from:
+          type: integer
+          example: 1
+          nullable: true
+        last_page:
+          type: integer
+          example: 3
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                nullable: true
+              label:
+                type: string
+                example: '1'
+              page:
+                type: integer
+                example: 1
+                nullable: true
+              active:
+                type: boolean
+        path:
+          type: string
+          format: uri
+        per_page:
+          type: integer
+          example: 12
+        to:
+          type: integer
+          example: 12
+          nullable: true
+        total:
+          type: integer
+          example: 29
+  responses:
+    '401':
+      description: Sessão ausente ou expirada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Unauthenticated.
+    '403':
+      description: Sem permissão para a operação.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Acesso restrito ao administrador.
+    '404':
+      description: Registro não encontrado ou fora do escopo da conta.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Not Found
+    '409':
+      description: Conflito com o estado atual.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Transição de status do pedido inválida.
+    '419':
+      description: Cookie/token CSRF ausente, incorreto ou expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: CSRF token mismatch.
+    '429':
+      description: Limite de tentativas de login excedido.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Too Many Attempts.
+    '422':
+      description: Validação de campos ou regra de negócio não atendida.
+      content:
+        application/json:
+          schema:
+            anyOf:
+            - $ref: '#/components/schemas/ValidationError'
+            - $ref: '#/components/schemas/Error'
+          examples:
+            validacao:
+              value:
+                message: The quantity field must be at least 0.
+                errors:
+                  quantity:
+                  - The quantity field must be at least 0.
+            negocio:
+              value:
+                message: A quantidade solicitada é maior que o estoque disponível.

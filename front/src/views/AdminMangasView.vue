@@ -278,21 +278,21 @@ function formatPrice(price) {
         </header>
 
         <form class="admin-manga-form" @submit.prevent="saveManga">
-          <label>Série<select v-model="form.series_id" required><option value="" disabled>Selecione uma série</option><option v-for="item in series" :key="item.id" :value="String(item.id)">{{ item.title }}</option></select><small v-if="fieldErrors.series_id">{{ fieldErrors.series_id[0] }}</small></label>
+          <label>Série<select v-model="form.series_id" required><option value="" disabled>Selecione uma série</option><option v-for="item in series" :key="item.id" :value="String(item.id)">{{ item.title }}</option></select><small class="field-error" v-if="fieldErrors.series_id">{{ fieldErrors.series_id[0] }}</small></label>
           <div class="admin-form-row">
-            <label>Volume<input v-model.number="form.volume_number" type="number" min="1" required /><small v-if="fieldErrors.volume_number">{{ fieldErrors.volume_number[0] }}</small></label>
-            <label>Título do volume<input v-model="form.title" maxlength="180" placeholder="Opcional; usa o nome da série" /><small v-if="fieldErrors.title">{{ fieldErrors.title[0] }}</small></label>
+            <label>Volume<input v-model.number="form.volume_number" type="number" min="1" required /><small class="field-error" v-if="fieldErrors.volume_number">{{ fieldErrors.volume_number[0] }}</small></label>
+            <label>Título do volume<input v-model="form.title" maxlength="180" placeholder="Opcional; usa o nome da série" /><small class="field-error" v-if="fieldErrors.title">{{ fieldErrors.title[0] }}</small></label>
           </div>
           <div class="admin-form-row">
-            <label>Preço (R$)<input v-model="form.price" type="number" min="0.01" step="0.01" required /><small v-if="fieldErrors.price">{{ fieldErrors.price[0] }}</small></label>
-            <label>Estoque<input v-model.number="form.stock" type="number" min="0" required /><small v-if="fieldErrors.stock">{{ fieldErrors.stock[0] }}</small></label>
+            <label>Preço (R$)<input v-model="form.price" type="number" min="0.01" step="0.01" required /><small class="field-error" v-if="fieldErrors.price">{{ fieldErrors.price[0] }}</small></label>
+            <label>Estoque<input v-model.number="form.stock" type="number" min="0" required /><small class="field-error" v-if="fieldErrors.stock">{{ fieldErrors.stock[0] }}</small></label>
           </div>
           <div class="admin-form-row">
-            <label>ISBN da edição (opcional)<input v-model="form.isbn" maxlength="20" placeholder="Código identificador impresso no livro" /><small>Código internacional que identifica esta edição; pode deixar em branco.</small><small v-if="fieldErrors.isbn">{{ fieldErrors.isbn[0] }}</small></label>
-            <label>Data de publicação<input v-model="form.published_at" type="date" /><small v-if="fieldErrors.published_at">{{ fieldErrors.published_at[0] }}</small></label>
+            <label>ISBN da edição (opcional)<input v-model="form.isbn" maxlength="20" placeholder="Código identificador impresso no livro" /><small>Código internacional que identifica esta edição; pode deixar em branco.</small><small class="field-error" v-if="fieldErrors.isbn">{{ fieldErrors.isbn[0] }}</small></label>
+            <label>Data de publicação<input v-model="form.published_at" type="date" /><small class="field-error" v-if="fieldErrors.published_at">{{ fieldErrors.published_at[0] }}</small></label>
           </div>
-          <label>Imagem da capa (opcional)<input type="file" accept="image/jpeg,image/png,image/webp" @change="form.cover_image = $event.target.files[0] || null" /><small>JPG, PNG ou WebP; até 2 MB. Ao editar, selecione uma nova imagem para substituir a atual.</small><small v-if="fieldErrors.cover_image">{{ fieldErrors.cover_image[0] }}</small></label>
-          <label>Descrição<textarea v-model="form.description" rows="4"></textarea><small v-if="fieldErrors.description">{{ fieldErrors.description[0] }}</small></label>
+          <label>Imagem da capa (opcional)<input type="file" accept="image/jpeg,image/png,image/webp" @change="form.cover_image = $event.target.files[0] || null" /><small>JPG, PNG ou WebP; até 2 MB. Ao editar, selecione uma nova imagem para substituir a atual.</small><small class="field-error" v-if="fieldErrors.cover_image">{{ fieldErrors.cover_image[0] }}</small></label>
+          <label>Descrição<textarea v-model="form.description" rows="4"></textarea><small class="field-error" v-if="fieldErrors.description">{{ fieldErrors.description[0] }}</small></label>
           <label class="admin-active-checkbox"><input v-model="form.is_active" type="checkbox" /> Visível no catálogo</label>
           <p v-if="errorMessage" class="checkout-error" role="alert">{{ errorMessage }}</p>
           <div class="admin-form-actions">

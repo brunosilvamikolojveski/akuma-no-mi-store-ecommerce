@@ -4,6 +4,7 @@ import HomeView from './views/HomeView.vue';
 import AuthView from './views/AuthView.vue';
 import CheckoutView from './views/CheckoutView.vue';
 import OrdersView from './views/OrdersView.vue';
+import OrderDetailView from './views/OrderDetailView.vue';
 import AdminOrdersView from './views/AdminOrdersView.vue';
 import AdminMangasView from './views/AdminMangasView.vue';
 import AdminDashboardView from './views/AdminDashboardView.vue';
@@ -22,6 +23,7 @@ const router = createRouter({
     { path: '/entrar', name: 'auth', component: AuthView },
     { path: '/finalizar', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } },
     { path: '/pedidos', name: 'orders', component: OrdersView, meta: { requiresAuth: true } },
+    { path: '/pedidos/:id', name: 'order-detail', component: OrderDetailView, meta: { requiresAuth: true } },
     { path: '/perfil', name: 'profile', component: ProfileView, meta: { requiresAuth: true } },
     { path: '/admin/pedidos', name: 'admin-orders', component: AdminOrdersView, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/mangas', name: 'admin-mangas', component: AdminMangasView, meta: { requiresAuth: true, requiresAdmin: true } },
