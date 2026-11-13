@@ -2,6 +2,12 @@
 
 Projeto de e-commerce de mangás desenvolvido com Laravel 12, MySQL e Vue 3. O Laravel fornece a API; o frontend Vue fica separado em `front/` e consome os mesmos endpoints que poderão ser usados por um app Flutter no futuro.
 
+## Demonstração online
+
+- [Loja Mangáverse](https://mangaverse-ecommerce.vercel.app/)
+- [Documentação interativa da API](https://mangaverse-ecommerce.vercel.app/api/docs)
+- [Especificação OpenAPI](https://mangaverse-ecommerce.vercel.app/api/docs/openapi.yaml)
+
 ## Pré-requisitos
 
 Para a publicação na Vercel e na Railway, siga [o guia de hospedagem](docs/HOSPEDAGEM.md).
